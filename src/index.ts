@@ -1,18 +1,25 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { ElizaService } from '@buf/connectrpc_eliza.bufbuild_es/connectrpc/eliza/v1/eliza_pb';
+import { createClient } from '@connectrpc/connect';
+import { createConnectTransport } from '@connectrpc/connect-web';
+
+const client = createClient(
+	ElizaService,
+	createConnectTransport({
+		baseUrl: 'https://demo.connectrpc.com',
+		fetch: (input, init) => {
+			// workaround: avoid error
+			delete (init as any)?.mode;
+			delete (init as any)?.credentials;
+			delete init?.redirect;
+
+			return fetch(input, init);
+		},
+	})
+);
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
+		const resp = await client.say({ sentence: 'I feel happy.' });
+		return new Response(resp.sentence);
 	},
 } satisfies ExportedHandler<Env>;
